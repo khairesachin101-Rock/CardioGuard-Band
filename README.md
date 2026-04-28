@@ -1,6 +1,5 @@
 # CardioGuard-Band
-CardioGuard Band– Wearable SpO₂, Heart Rate &amp; AI-Based Cardiac Risk Score Detector
-# ❤️ CardioGuard – AI-Enabled Wearable Cardiac Monitoring System
+# ❤️ Intelligent rule-based cardiac risk assessment system inspired by machine learning principles
 
 ## 🚀 Overview
 
@@ -108,6 +107,17 @@ This system is a **prototype for early risk indication** and research purposes. 
 * Deep learning model deployment
 
 ---
+## 🧪 Engineering Highlights
+
+- Real-time signal processing implemented on ESP32  
+- Noise reduction using moving average smoothing  
+- Peak detection algorithm for accurate heart rate estimation  
+- Multi-sensor fusion (HR + SpO₂ + motion)  
+- Low-latency embedded system design  
+
+## 📊 Practical Significance
+
+This system demonstrates how low-cost embedded hardware can be used for early cardiac risk indication in resource-constrained environments.
 
 ## 💡 Key Contribution
 
