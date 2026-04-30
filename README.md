@@ -1,130 +1,160 @@
-# CardioGuard-Band
-# ❤️ Intelligent rule-based cardiac risk assessment system inspired by machine learning principles
+# CardioGuard Band 💗
+
+> **Wearable SpO₂, Heart Rate & Rule-Based Cardiac Risk Classifier**  
+> Built as part of **ME696 at IIT Guwahati** 🎓
+
+---
 
 ## 🚀 Overview
 
-CardioGuard is a real-time wearable health monitoring system designed to measure vital physiological signals and estimate cardiac risk using embedded machine learning. The system integrates multiple sensors with an ESP32 microcontroller to continuously monitor Heart Rate (HR), SpO₂, and motion data, and processes this information to provide an interpretable risk indication.
+CardioGuard is a real-time wearable health monitoring system that measures vital physiological signals and estimates cardiac risk using an embedded rule-based classifier — derived from a Decision Tree trained on a structured CSV dataset. The system integrates multiple sensors with an ESP32 microcontroller to continuously monitor Heart Rate (HR), SpO₂, and motion data, and provides an interpretable risk indication on-device.
 
 ---
 
-## 🔍 System Functionality
+## 🔍 What It Does
 
-* Measures **Heart Rate (HR)** and **SpO₂** using MAX30102 sensor
-* Tracks motion and activity using MPU6050 (accelerometer + gyroscope)
-* Processes data in real-time on ESP32
-* Displays output on 0.96" OLED screen
-* Computes **cardiac risk level (Low / Medium / High)** using a trained ML model
+- Measures **Heart Rate (HR)** and **SpO₂** using MAX30102 sensor
+- Tracks motion and activity using MPU6050 (accelerometer + gyroscope)
+- Processes data in real-time on ESP32
+- Displays output on 0.96" OLED screen
+- Classifies **cardiac risk level → LOW / MODERATE / HIGH**
+- Detects **health status → HEALTHY / SICK / DISEASE**
+- Syncs live data to **Blynk IoT dashboard**
 
 ---
 
-## 🧠 Machine Learning Model (Real Implementation)
+## 🧠 AI / ML Approach
 
-* Model Used: **Decision Tree Classifier**
-* Training Data: Structured dataset containing HR, SpO₂, and activity levels
-* Features:
+### Workflow
+1. Collected a structured CSV dataset with features: HR (BPM), SpO₂ (%), Activity level
+2. Trained a **Decision Tree Classifier** (Python / scikit-learn) on this dataset offline
+3. Extracted the key decision thresholds from the trained tree
+4. **Deployed those thresholds as a rule-based classifier on ESP32** (embedded C++)
 
-  * Heart Rate (BPM)
-  * SpO₂ (%)
-  * Motion/Activity (from MPU6050)
-* Output:
+### Why this approach?
+- ESP32 cannot run a full ML runtime — threshold extraction is the standard embedded ML deployment method
+- Decision Trees naturally produce interpretable if/else rules → perfect for edge deployment
+- Output is deterministic and real-time with zero cloud dependency
 
-  * Risk classification: **Low / Medium / High**
+### Model Logic (derived from Decision Tree)
 
-### ⚙️ Why Decision Tree?
+| Condition | Risk Level |
+|---|---|
+| SpO₂ < 90% OR HR > 110 bpm | 🔴 HIGH |
+| SpO₂ < 95% OR HR > 95 bpm | 🟡 MODERATE |
+| SpO₂ ≥ 95% AND HR 60–95 bpm | 🟢 LOW |
 
-* Lightweight → suitable for ESP32 deployment
-* Interpretable → clear threshold-based decisions
-* Fast inference → real-time prediction possible
+> **Note:** This system is designed for **early risk indication** only — not clinical diagnosis.
 
-### 📊 Model Behavior (Realistic Logic)
+---
 
-* Low SpO₂ + High HR → Higher risk
-* Stable HR + Normal SpO₂ → Low risk
-* Sudden motion + abnormal HR → Medium/High risk
+## ⚙️ Tech Stack
 
-> Note: Model is designed for **early indication**, not clinical diagnosis.
+`ESP32` | `Embedded C++` | `I2C Sensors` | `OLED UI` | `Blynk IoT` | `scikit-learn (offline training)` | `Python (model training)`
 
 ---
 
 ## 🛠️ Hardware Components
 
-* ESP32 (Microcontroller + WiFi)
-* MAX30102 (Pulse Oximeter Sensor)
-* MPU6050 (Accelerometer + Gyroscope)
-* 0.96" OLED Display (I2C)
+| Component | Function |
+|---|---|
+| ESP32 | Microcontroller + WiFi |
+| MAX30102 | Pulse Oximeter (HR + SpO₂) |
+| MPU6050 | Accelerometer + Gyroscope (motion) |
+| 0.96" OLED (I2C) | Real-time display |
 
 ---
 
-## 🔌 Circuit Connections (Wiring Table)
+## 🔌 Circuit Connections
 
-| Component    | Pin | ESP32 Pin |
-| ------------ | --- | --------- |
-| MAX30102     | VCC | 3.3V      |
-|              | GND | GND       |
-|              | SDA | GPIO 21   |
-|              | SCL | GPIO 22   |
-| MPU6050      | VCC | 3.3V      |
-|              | GND | GND       |
-|              | SDA | GPIO 21   |
-|              | SCL | GPIO 22   |
-| OLED Display | VCC | 3.3V      |
-|              | GND | GND       |
-|              | SDA | GPIO 21   |
-|              | SCL | GPIO 22   |
+| Component | Pin | ESP32 Pin |
+|---|---|---|
+| MAX30102 | VCC | 3.3V |
+| | GND | GND |
+| | SDA | GPIO 21 |
+| | SCL | GPIO 22 |
+| MPU6050 | VCC | 3.3V |
+| | GND | GND |
+| | SDA | GPIO 21 |
+| | SCL | GPIO 22 |
+| OLED Display | VCC | 3.3V |
+| | GND | GND |
+| | SDA | GPIO 21 |
+| | SCL | GPIO 22 |
 
-> Note: All devices communicate via I2C protocol (shared SDA & SCL lines)
+> All devices share I2C bus (SDA + SCL lines)
+
+---
 
 ## ⚙️ System Workflow
 
-1. Sensors acquire physiological data
-2. ESP32 preprocesses and filters readings
-3. Features passed to ML model
-4. Model predicts cardiac risk
-5. Output displayed on OLED
+```
+Sensors → ESP32 preprocessing → Feature extraction → Rule-based classifier → OLED display + Blynk sync
+```
+
+1. MAX30102 & MPU6050 acquire physiological + motion data
+2. ESP32 filters and smooths readings (moving average)
+3. Peak detection extracts BPM; ratio method estimates SpO₂
+4. Rule-based classifier (from trained Decision Tree) predicts risk level
+5. Output shown on OLED and sent to Blynk dashboard
 
 ---
 
-## 📈 Reliability & Accuracy Considerations
+## 📈 Signal Processing Highlights
 
-* Sensor readings averaged over time window to reduce noise
-* Motion data used to avoid false HR spikes
-* Decision Tree ensures stable and deterministic output
-* System designed for **consistent real-time performance**
+- Moving average smoothing for BPM and SpO₂ (reduces motion artifacts)
+- Peak detection algorithm for accurate heart rate estimation from IR signal
+- Buffered SpO₂ computation using AC/DC ratio method (Beer-Lambert law)
+- MPU6050 activity detection to flag motion-artifact conditions
+- Step counter via accelerometer magnitude thresholding
 
 ---
 
-## ⚠️ Disclaimer
+## 🔧 Setup Instructions
 
-This system is a **prototype for early risk indication** and research purposes. It is not a substitute for professional medical diagnosis.
+1. Clone this repo
+2. Create a `secrets.h` file in the same folder as `CardioGuard.ino`:
+```cpp
+#define WIFI_SSID "your_wifi_name"
+#define WIFI_PASS "your_password"
+#define BLYNK_AUTH "your_blynk_token"
+```
+3. Install required Arduino libraries:
+   - `MAX30105` (SparkFun)
+   - `MPU6050_light`
+   - `Adafruit SSD1306`
+   - `BlynkSimpleEsp32`
+4. Flash to ESP32 via Arduino IDE
+5. Open Blynk app and configure virtual pins V0–V10
 
 ---
 
 ## 📌 Future Improvements
 
-* HRV (Heart Rate Variability) integration
-* Larger dataset for improved ML accuracy
-* Cloud-based monitoring system
-* Deep learning model deployment
+- HRV (Heart Rate Variability) integration
+- Larger, validated dataset for improved classifier accuracy
+- Cloud-based monitoring and trend analysis
+- Deep learning model (TensorFlow Lite) for on-device inference
+- PCB design for compact wearable form factor
 
 ---
-## 🧪 Engineering Highlights
 
-- Real-time signal processing implemented on ESP32  
-- Noise reduction using moving average smoothing  
-- Peak detection algorithm for accurate heart rate estimation  
-- Multi-sensor fusion (HR + SpO₂ + motion)  
-- Low-latency embedded system design  
+## 🧪 Key Engineering Highlights
 
-## 📊 Practical Significance
+- Real-time signal processing on resource-constrained microcontroller
+- End-to-end hardware + software integration
+- Edge AI — no cloud compute needed for inference
+- Multi-sensor fusion (HR + SpO₂ + motion)
+- Low-cost design suitable for remote/underserved healthcare settings
 
-This system demonstrates how low-cost embedded hardware can be used for early cardiac risk indication in resource-constrained environments.
+---
 
-## 💡 Key Contribution
+## ⚠️ Disclaimer
 
-This project demonstrates the integration of:
+This system is a **prototype for early risk indication and research purposes only**. It is not a substitute for professional medical diagnosis.
 
-* Embedded Systems
-* Biomedical Signal Processing
-* Real-time Machine Learning
+---
 
+## 📄 License
 
+MIT License — free to use, modify, and distribute with attribution.
