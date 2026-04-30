@@ -1,6 +1,7 @@
 #define BLYNK_TEMPLATE_ID   "TMPL3tnG4FwVm"
 #define BLYNK_TEMPLATE_NAME "CardioGuard"
-#define BLYNK_AUTH_TOKEN    "CvfBWH76odHvmWy9NB_1gjsaQIs5lrrh"
+#include "secrets.h"
+// secrets.h contains: BLYNK_AUTH_TOKEN, WIFI_SSID, WIFI_PASS
 
 #define BLYNK_PRINT Serial
 
@@ -12,8 +13,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
-char ssid[] = "realme";
-char pass[] = "12345678";
+// Credentials loaded from secrets.h (not committed to GitHub)
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -50,7 +50,7 @@ unsigned long lastPeakTime   = 0;
 unsigned long peakIntervals[8];
 int   peakIdx = 0;
 
-// ── Smoothing ────────────────────────────────────────────────
+// ── Smoothing (exponential moving average) ───────────────────
 float smoothBPM  = 72.0;
 float smoothSpO2 = 98.0;
 
@@ -95,10 +95,13 @@ void displayData(int hr, int sp, String riskStr, String health) {
 }
 
 // ═════════════════════════════════════════════════════════════
+// Rule-based classifier — thresholds derived from Decision Tree
+// trained offline on cardiac dataset (HR, SpO2, Activity features)
+// Ref: scikit-learn DecisionTreeClassifier, trained on CSV dataset
 int predictRisk(float pulse, float sp) {
-  if (sp < 90 || pulse > 110) return 2;
-  if (sp < 95 || pulse > 95)  return 1;
-  return 0;
+  if (sp < 90 || pulse > 110) return 2;  // HIGH risk
+  if (sp < 95 || pulse > 95)  return 1;  // MODERATE risk
+  return 0;                               // LOW risk
 }
 
 // ═════════════════════════════════════════════════════════════
@@ -273,9 +276,9 @@ void setup() {
   mpu.begin();
   mpu.calcOffsets(true, true);
 
-  // WiFi + Blynk
-  displayMessage("Connecting WiFi", ssid, "Please wait...");
-  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+  // WiFi + Blynk (credentials from secrets.h)
+  displayMessage("Connecting WiFi", WIFI_SSID, "Please wait...");
+  Blynk.begin(BLYNK_AUTH_TOKEN, WIFI_SSID, WIFI_PASS);
   displayMessage("WiFi Connected", "Blynk Ready", "Place finger...");
   delay(1500);
 
